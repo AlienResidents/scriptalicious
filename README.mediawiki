@@ -1,1 +1,4 @@
 Various misc scripts I use
+
+* '''bin/hostess'''
+For a non-shared home directory in multiple environments.  Eventually it'll use a mysqld backend to keep track of hosts it has been ran against.  It should also be able to run scheduled updates from cron or similar.
