@@ -1,0 +1,132 @@
+#!/bin/bash
+
+USAGE="
+$0 [ -d | -q ] <hostname | ip>
+  Options:
+    -d Debug
+    -q Quiet
+"
+
+db_name="donovanc"
+db_host="localhost"
+db_user="donovanc"
+db_pass="now we know"
+# hosts table:
+# id - int(11)
+# name - varchar(12)
+# domain - varchar(32)
+# initialised - timestamp (populated by mysql insert trigger)
+# lastUpdate - timestamp (populated by mysql update trigger)
+
+# An optional component
+debug=0
+
+# No output at all
+# quiet == 0: normal output
+# quiet == 1: no output at all
+quiet=0
+
+# Local Addresses
+localAddrs=$(ifconfig -a|grep 'inet '|awk '{print $2}'|awk -F: '{print $2}')
+
+files=(
+.bash_profile
+.vimrc
+.screenrc
+bin
+)
+
+# The logging function
+function l {
+  if [[ $debug == 0 && $quiet == 1 ]]
+  then
+    return
+  fi
+  echo -e "$@"
+}
+
+# The command function
+function c {
+  # We'll safely (hahah) assume that the command exists.
+  if [[ $debug != 1 ]]
+  then
+    $@ &> /dev/null
+  else
+    $@
+  fi
+}
+
+if [[ -z $1 ]]
+then
+	echo -e "$USAGE"
+	exit 127
+fi
+
+declare -a args
+declare -a hosts
+for arg in $@
+do
+  if [[ $arg =~ ^- ]]
+  then
+    args=(${args[*]} $arg)
+  else
+    hosts=(${hosts[*]} $arg)
+  fi
+done
+
+for arg in ${args[*]}
+do
+  if [[ $arg == '-d' ]]
+  then
+    debug=1
+  elif [[ $arg == '-q' ]]
+  then
+    quiet=1
+  fi
+done
+
+if [[ -z $hosts ]]
+then
+  debug=1
+  l "$USAGE"
+  exit
+fi
+
+
+
+
+cd
+for host in ${hosts[*]}
+do
+  is_ip=$(echo $host | egrep '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$')
+  if [[ -z $is_ip ]]
+  then
+    doesResolve=$(nslookup $host | grep Address)
+    addrs=$(echo -e "$doesResolve" | wc -l)
+    l "\n+++ $host setup starting."
+    if [[ $addrs -le 1 ]]
+    then
+      l "$host does not resolve!"
+      continue
+    fi
+  fi
+  l "Setting up the .ssh directory..."
+  c ssh $host "mkdir -p .ssh ; chmod 700 .ssh"
+
+  l "Transferring ssh authorized_keys files..."
+  c scp .ssh/authorized_keys $host:
+
+  l "Transferring files to $host..."
+	for file in ${files[*]}
+	do
+  	c scp -r $file $host:
+	done
+
+  l "Setting up .bashrc symlink..."
+  c ssh $host "ln -sf .bash_profile .bashrc"
+
+  l "Removing the fucking .bash_logout (grrrr)..."
+  c ssh $host "if [ -f .bash_logout ] ; then rm .bash_logout ; fi"
+
+  l "---- $host setup complete."
+done
