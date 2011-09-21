@@ -13,6 +13,7 @@ db_user=""
 db_pass=""
 # hosts table:
 # id - int(11)
+# ip - varchar(15)
 # name - varchar(12)
 # domain - varchar(32)
 # initialised - timestamp (populated by mysql insert trigger)
