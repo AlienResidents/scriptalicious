@@ -7,10 +7,10 @@ $0 [ -d | -q ] <hostname | ip>
     -q Quiet
 "
 
-db_name="donovanc"
-db_host="localhost"
-db_user="donovanc"
-db_pass="now we know"
+db_name=""
+db_host=""
+db_user=""
+db_pass=""
 # hosts table:
 # id - int(11)
 # name - varchar(12)
