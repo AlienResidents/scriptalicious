@@ -115,12 +115,12 @@ do
   c ssh $host "mkdir -p .ssh ; chmod 700 .ssh"
 
   l "Transferring ssh authorized_keys files..."
-  c scp .ssh/authorized_keys $host:
+  c scp .ssh/authorized_keys $host:.ssh/
 
   l "Transferring files to $host..."
 	for file in ${files[*]}
 	do
-  	c scp -r $file $host:
+  	c scp -r $file $host:$file
 	done
 
   l "Setting up .bashrc symlink..."
