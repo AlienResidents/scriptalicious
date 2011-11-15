@@ -1,0 +1,29 @@
+#!/usr/bin/perl
+
+
+use strict;
+use warnings;
+
+# Return codes:
+# 0: good to go
+# 1: missing username and password
+# 2: missing password
+# 3: incorrect password
+
+if (!defined($ARGV[0])) {
+  die "1";
+} elsif (!defined($ARGV[1])) {
+  die "2";
+}
+
+my $user = $ARGV[0];
+my $suppliedPlaintext = $ARGV[1];
+my $systemCrypted = (getpwnam($user))[1];
+
+if (crypt($suppliedPlaintext, $systemCrypted) ne $systemCrypted) {
+  die "3\n";
+} else {
+  print "0\n";
+}
+
+exit;
