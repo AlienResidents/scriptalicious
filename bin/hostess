@@ -100,6 +100,11 @@ cd
 for host in ${hosts[*]}
 do
   is_ip=$(echo $host | egrep '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$')
+  if [[ $host =~ @ ]]
+  then
+    user=${host%%@*}
+    host=${host##*@}
+  fi
   if [[ -z $is_ip ]]
   then
     doesResolve=$(nslookup $host | grep Address)
@@ -110,6 +115,10 @@ do
       l "$host does not resolve!"
       continue
     fi
+  fi
+  if [[ -n $user ]]
+  then
+    host="$user@$host"
   fi
   l "Setting up the .ssh directory..."
   c ssh $host "mkdir -p .ssh ; chmod 700 .ssh"
@@ -130,4 +139,5 @@ do
   c ssh $host "if [ -f .bash_logout ] ; then rm .bash_logout ; fi"
 
   l "---- $host setup complete."
+  unset user
 done
