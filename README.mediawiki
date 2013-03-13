@@ -4,5 +4,5 @@ Various misc scripts I use
 For a non-shared home directory in multiple environments.  Eventually it'll use a mysqld backend to keep track of hosts it has been ran against.  It should also be able to run scheduled updates from cron or similar.
 
 * '''perlDaemon.pl'''
-This is a very simple basic perl daemon for testing daemon'ness (yes, I'm sure that's a qord somewhere).
+This is a very simple basic perl daemon for testing daemon'ness (yes, I'm sure that's a word somewhere).
 
