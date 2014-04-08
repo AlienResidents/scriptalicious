@@ -1,0 +1,9 @@
+Various inotify scripts I've written for some businesses to workaround filendle limitations in Java for on Linux
+
+These scripts are designed to mv files from one directory to another upon a CLOSE system call, and should be done on the same filesystem so as to make it near instantaneous (or atomic if you will).
+
+* '''ifw.pl'''
+A perl script that activates as a daemon process to watch for CLOSE system calls, and move them into various directories.
+
+* '''ifw-shim.bash'''
+A bash(>4.0) script that activates as a daemon process (poor daemon) to watch for files being written, and polls them to ensure the file has been completely written, and then moves the files into various directories.
