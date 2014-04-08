@@ -1,4 +1,4 @@
-Various inotify scripts I've written for some businesses to workaround filendle limitations in Java for on Linux
+Various inotify scripts I've written for some businesses to workaround filendle limitations in Java for on Linux / Unix
 
 These scripts are designed to mv files from one directory to another upon a CLOSE system call, and should be done on the same filesystem so as to make it near instantaneous (or atomic if you will).
 
