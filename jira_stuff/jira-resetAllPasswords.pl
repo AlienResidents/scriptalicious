@@ -30,31 +30,12 @@ my %auth = (
 );
 
 # Our valid password characters for genPass()
-my @chars = ( '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c',
-  'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
-  's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G',
-  'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
-  'W', 'X', 'Y', 'Z', '!', '@', '#', '$', '%', '(', ')',
-);
+my @chars = ('0'..'9', 'a'..'z', 'A'..'Z' '!', '@', '#', '$', '%', '(', ')');
 
 # This is a case sensitive list of usernames to ignore processing for
 my @userIgnore = (
 
 );
-
-# Start your vars!
-my $JSON;
-my %entries;
-
-# Simple function to check for blank values from a passed scalar reference
-sub isBlank {
-  my $ref = shift;
-  if ($ref eq '') {
-    return 0;
-  } else {
-    return 1;
-  }
-}
 
 # The whole purpose of this script is to generate a pseudo-random password
 # This is the function that does just that, and returns a scalar password
@@ -67,28 +48,25 @@ sub genPass {
 }
 
 # Who is us?
-if (!defined($auth{'user'}) || $auth{'user'} eq "") {
+if (!$auth{'user'}) {
   print "What is your Jira username? : ";
   chomp($auth{'user'} = <STDIN>);
-  isBlank($auth{'user'}) ? print "\n" : die "\nJira username can't be blank!\n";
+  $auth{'user'} and print "\n" or die "\nJira username can't be blank!\n";
 }
 
 # A password is a nice thing to provide to Jira...
-if (!defined($auth{'pass'}) || $auth{'pass'} eq "") {
+if (!$auth{'pass'}) {
   ReadMode('noecho');
   print "What is your password? : ";
   chomp($auth{'pass'} = <STDIN>);
   ReadMode(0);
-  isBlank($auth{'pass'}) ? print "\n" : die "\nJira password can't be blank!\n";
+  $auth{'pass'} and print "\n" or die "\nJira password can't be blank!\n";
 }
 
 # These are the auth headers that we send with most REST requests
 my $headers = {
   'Content-Type' => 'application/json',
-  Authorization => 'Basic ' .
-    encode_base64($auth{'user'} .
-    ':' .
-    $auth{'pass'})
+  Authorization => 'Basic '. encode_base64($auth{'user'}. ':'. $auth{'pass'})
 };
 my $client = REST::Client->new();
 $client->setHost($restHost);
@@ -98,14 +76,10 @@ for my $i ('0'..'9','a'..'z') {
   my $json = from_json($client->responseContent());
   for my $hash ($json) {
     for my $j (@$hash) {
+      next if grep { $j->{name} } @userIgnore;
       $entries{$j->{'name'}} = $j->{'emailAddress'};
     }
   }
-}
-
-# Process the ignore users...
-foreach my $user (@userIgnore) {
-  delete $entries{$user} if $entries{$user};
 }
 
 for my $key (keys %entries) {
@@ -119,15 +93,15 @@ for my $key (keys %entries) {
   $client->PUT($passURIref . $key, $jsonPass, $headers);
   print $client->responseCode() if $debug;
   print $client->responseContent() if $debug;
+  my $sessionCreds->{username} = $key;
+  $sessionCreds->{password} = $pass->{password};
 
   # We can get the session data for the user if we turn on debugging
   if ($debug) {
-    my $sessionCreds->{username} = $key;
-    $sessionCreds->{password} = $pass->{password};
     my $jsonSessionCreds = encode_json($sessionCreds);
     $client->POST($sessionURIref, $jsonSessionCreds, $headers);
-    print $client->responseCode() if $debug;
-    print $client->responseContent() if $debug;
+    print $client->responseCode();
+    print $client->responseContent();
   }
 
   # We need to DELETE all sessions for the user so we can force a new login
