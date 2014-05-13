@@ -1,0 +1,22 @@
+Some Stuff for use with openconnect
+
+Pre-reqs:
+openconnect
+
+* Installing pre-reqs:
+  Debian based distro:
+    apt-get install openconnect
+  RHEL based distro:
+    yum install openconnect # ?? I don't know, even if it was as charming as Arnold from greenacre, i still wouldn't touch the filthy motherfuckers.
+
+
+* Installing these scripts:
+  wget https://github.com/AlienResidents/scriptalicious/archive/master.zip
+  unzip master.zip
+  mv scriptalicious-master/openconnect /root/
+  rm -r scriptalicious-master
+  cd /root/openconnect
+  vim vars
+  /root/openconnect/connect.bash
+
+
