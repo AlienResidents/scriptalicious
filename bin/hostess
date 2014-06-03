@@ -1,41 +1,37 @@
 #!/bin/bash
 
+# EXIT codes
+# 100 : Wrong usage of script
+# 101 : No package manager found (apt-get)
+# 102 : sqlite3 not found
+
 USAGE="
-$0 [ -d | -q ] <hostname | ip>
+$0 [ -d | -q ] <hostname | ip> . . .
   Options:
     -d Debug
     -q Quiet
 "
 
-db_name=""
-db_host=""
-db_user=""
-db_pass=""
-# hosts table:
-# id - int(11)
-# ip - varchar(15)
-# name - varchar(12)
-# domain - varchar(32)
-# initialised - timestamp (populated by mysql insert trigger)
-# lastUpdate - timestamp (populated by mysql update trigger)
+if [[ $# = 0 ]]
+then
+  echo -e "$USAGE"
+  exit 100
+fi
 
 # An optional component
+# 0: normal operations
+# 1: output all $logFile entries to STDOUT
 debug=0
 
 # No output at all
-# quiet == 0: normal output
-# quiet == 1: no output at all
+# 0: normal output
+# 1: no stdout at all
 quiet=0
 
-# Local Addresses
-localAddrs=$(ifconfig -a|grep 'inet '|awk '{print $2}'|awk -F: '{print $2}')
-
-files=(
-.bash_profile
-.vimrc
-.screenrc
-bin
-)
+# Should we create an SSH keypair if one doesn't exist?
+# 0: do not create
+# 1: do create (any non-zero value will create a key)
+createSSH=1
 
 # The logging function
 function l {
@@ -43,26 +39,36 @@ function l {
   then
     return
   fi
-  echo -e "$@"
+  if [[ -n $@ ]]
+  then
+    echo -e "$@"
+  fi
 }
 
 # The command function
 function c {
   # We'll safely (hahah) assume that the command exists.
-  if [[ $debug != 1 ]]
+  msg=$($@ 2>&1)
+  if [[ $debug = 1 ]]
   then
-    $@ &> /dev/null
-  else
-    $@
+    l "$msg"
   fi
 }
 
-if [[ -z $1 ]]
+# what be the package manager yo? Same place as usual I suppose
+apt=$(which apt-get)
+yum=$(which yum)
+if [[ -n $apt ]]
 then
-	echo -e "$USAGE"
-	exit 127
+  pkger="$apt"
+elif [[ -n $yum ]]
+then
+  pkger="$yum"
+else
+  echo -e "No supported package manager found"
 fi
 
+# Simple is as simple does, use getopts for more complex argument parsing
 declare -a args
 declare -a hosts
 for arg in $@
@@ -80,6 +86,7 @@ do
   if [[ $arg == '-d' ]]
   then
     debug=1
+    l "Debugging enabled"
   elif [[ $arg == '-q' ]]
   then
     quiet=1
@@ -93,24 +100,101 @@ then
   exit
 fi
 
+sqlite=$(which sqlite3)
+sqlite3Version=$(sqlite3 --version)
+if [[ -z $sqlite && -n $pkger ]]
+then
+  read -p "Can't find sqlite3, want to install it? y|n [y] " install
+  if [[ $install = "y" || -z $install ]]
+  then
+    $pkger install -y sqlite3
+  else
+    echo -e "sqlite3 not installed."
+    if [[ -z $pkger ]]
+    then
+      echo -e "no package manager found either."
+    fi
+    echo -e "Exiting"
+    exit 102
+  fi
+fi
+
+eval _dbDir="~/hostess"
+dbFile="$_dbDir/hostess.sqlite"
+if [[ ! -d $(dirname $dbFile) ]]
+then
+  mkdir -p $(dirname $dbFile)
+fi
+dbName="hostess"
+dbTable="hosts"
+# hosts table schema:
+# id - int(11)
+# ip - varchar(16)
+# name - varchar(64)
+# domain - varchar(128)
+# initialised - timestamp (populated by mysql insert trigger)
+# latestUpdate - timestamp (populated by mysql update trigger)
+createTable="create table hosts(id integer primary key autoincrement, ip varchar(16), name varchar(64), domain varchar(128), initialised datetime, lastUpdate datetime, status boolean);"
+#sqlite3 --version ; insert into hosts values(null, '1.1.3.4', 'testing', 'example.com', datetime('now'), datetime('now'), 1);
+
+logDir="$HOME/var"
+if [[ ! -d $logDir ]]
+then
+  c "mkdir -p $logDir"
+fi
+
+logFile="$logDir/hostess.log"
+if [[ ! -f $logFile ]]
+then
+  c "touch $logFile"
+fi
+
+# Local Addresses
+declare -a addrs
+addrs=($(ifconfig -a | grep 'inet ' | awk '{print $2}' | awk -F: '{print $2}'))
+
+# Local SSH Stuff
+eval _keyType="dsa"
+eval _keyBits="1024"
+eval _privKey="~/.ssh/id_dsa"
+eval _pubKey="~/.ssh/id_dsa.pub"
+eval _authKeys="~/.ssh/authorized_keys"
+if [[ ! -f $_privKey && $createSSH != 0 ]]
+then
+  echo "ssh-keygen -t $_keyType -b $_keyBits -f $_privKey -N ''"
+fi
+
+eval _files=(
+"~/.bash_profile"
+"~/.vimrc"
+"~/.screenrc"
+"~/bin"
+"~/.ssh/authorized_keys"
+)
+
+if [[ -z $1 ]]
+then
+	echo -e "$USAGE"
+	exit 127
+fi
 
 
 
-cd
+# Let the iterating begin!
 for host in ${hosts[*]}
 do
-  is_ip=$(echo $host | egrep '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$')
+  isIP=$(echo $host | egrep '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$')
   if [[ $host =~ @ ]]
   then
     user=${host%%@*}
     host=${host##*@}
   fi
-  if [[ -z $is_ip ]]
+  if [[ -z $isIP ]]
   then
-    doesResolve=$(nslookup $host | grep Address)
-    addrs=$(echo -e "$doesResolve" | wc -l)
+    doesResolve=$(dig +short +search $host)
+    inSSHconfig=$(grep $host ~/.ssh/config)
     l "\n+++ $host setup starting."
-    if [[ $addrs -le 1 ]]
+    if [[ -z $doesResolve && -z $inSSHconfig ]]
     then
       l "$host does not resolve!"
       continue
@@ -121,22 +205,25 @@ do
     host="$user@$host"
   fi
   l "Setting up the .ssh directory..."
-  c ssh $host "mkdir -p .ssh ; chmod 700 .ssh"
-
-  l "Transferring ssh authorized_keys files..."
-  c scp .ssh/authorized_keys $host:.ssh/
+  c ssh -q $host "mkdir -p .ssh ; chmod 700 .ssh"
 
   l "Transferring files to $host..."
-	for file in ${files[*]}
+	for file in ${_files[*]}
 	do
-  	c scp -r $file $host:$file
+    l "\t$file"
+    if [[ -e $file ]]
+    then
+  	  c scp -q -r $file $host:$file
+    else
+      l "\tThe file, $file, does not seem to exist"
+    fi
 	done
 
-  l "Setting up .bashrc symlink..."
-  c ssh $host "ln -sf .bash_profile .bashrc"
+  l "Creating symlink .bashrc -> .bash_profile"
+  c ssh -q $host "ln -sf .bash_profile .bashrc"
 
   l "Removing the fucking .bash_logout (grrrr)..."
-  c ssh $host "if [ -f .bash_logout ] ; then rm .bash_logout ; fi"
+  c ssh -q $host "if [[ -f .bash_logout ]] ; then rm .bash_logout ; fi"
 
   l "---- $host setup complete."
   unset user
