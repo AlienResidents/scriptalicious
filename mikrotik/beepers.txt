@@ -1,0 +1,103 @@
+SQUAWK Chang
+ :for j from=1 to=4 step=1 do={
+   :for i from=2000 to=50 step=-400 do={
+     :beep frequency=$i length=11ms;
+     :delay 11ms;
+   }
+   :for i from=800 to=2000 step=400 do={
+     :beep frequency=$i length=11ms;
+     :delay 11ms;
+   }
+ }
+
+SQUAWK Coo
+ :for i from=0 to=150 step=10 do={
+   :beep frequency=(1295 - i) length=22ms;
+   :delay 22ms;
+   :beep frequency=(1095 + i) length=22ms;
+   :delay 22ms;
+ }
+
+SQUAWK Oh!
+ :for i from=800 to=2000 step=100 do={
+   :beep frequency=$i length=11ms;
+   :delay 11ms;
+ }
+ :for i from=2000 to=50 step=-100 do={
+   :beep frequency=$i length=11ms;
+   :delay 11ms;
+ }
+
+SQUAWK Phone 1
+ :for i from=1 to=10 step=1 do={
+   :beep frequency=1195 length=22ms;
+   :delay 22ms;
+   :beep frequency=2571 length=22ms;
+   :delay 22ms;
+ }
+
+SQUAWK Siren
+ :for i from=1 to=3 step=1 do={
+   :beep frequency=550 length=494ms;
+   :delay 494ms;
+   :beep frequency=400 length=494ms;
+   :delay 494ms;
+ }
+
+SQUAWK Space 1
+ :for i from=1000 to=40 step=-20 do={
+   :beep frequency=$i length=11ms;
+   :delay 11ms;
+ }
+
+SQUAWK Space 2
+ :for i from=10000 to=500 step=-500 do={
+   :beep frequency=$i length=11ms;
+   :delay 11ms;
+ }
+
+Phone Call
+ :for i from=1 to=10 do={
+   /system script run "SQUAWK Phone 1";
+   :delay 400ms;
+   /system script run "SQUAWK Phone 1";
+   :delay 2000ms;
+ }
+
+Imperial March
+:beep frequency=500 length=500ms;
+:delay 500ms;
+:beep frequency=500 length=500ms;
+:delay 500ms;
+:beep frequency=500 length=500ms;
+:delay 500ms;
+:beep frequency=400 length=500ms;
+:delay 400ms;
+:beep frequency=600 length=200ms;
+:delay 100ms;
+:beep frequency=500 length=500ms;
+:delay 500ms;
+:beep frequency=400 length=500ms;
+:delay 400ms;
+:beep frequency=600 length=200ms;
+:delay 100ms;
+:beep frequency=500 length=500ms;
+:delay 1000ms;
+:beep frequency=750 length=500ms;
+:delay 500ms;
+:beep frequency=750 length=500ms;
+:delay 500ms;
+:beep frequency=750 length=500ms;
+:delay 500ms;
+:beep frequency=810 length=500ms;
+:delay 400ms;
+:beep frequency=600 length=200ms;
+:delay 100ms;
+:beep frequency=470 length=500ms;
+:delay 500ms;
+:beep frequency=400 length=500ms;
+:delay 400ms;
+:beep frequency=600 length=200ms;
+:delay 100ms;
+:beep frequency=500 length=500ms;
+:delay 1000ms;
